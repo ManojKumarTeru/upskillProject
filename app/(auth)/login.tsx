@@ -151,13 +151,20 @@ export default function LoginScreen() {
 
       const { data: profile } = await supabase
         .from('users')
-        .select('first_name, email')
+        .select('first_name, email, primary_role')
         .eq('id', userId)
         .maybeSingle();
 
       if (profile && profile.first_name) {
         await syncSessionToDB(userId);
-        router.replace('/(tabs)');
+        
+        if (!profile.primary_role) {
+          router.replace('/(auth)/role-selection');
+        } else if (profile.primary_role === 'owner') {
+          router.replace('/(business)/dashboard');
+        } else {
+          router.replace('/(tabs)');
+        }
       } else {
         setStep('PROFILE');
       }
@@ -191,7 +198,7 @@ export default function LoginScreen() {
 
       if (error) throw error;
       await syncSessionToDB(user.id);
-      router.replace('/(tabs)');
+      router.replace('/(auth)/role-selection');
     } catch (error: any) {
       Alert.alert("Save Error", error.message);
     } finally {

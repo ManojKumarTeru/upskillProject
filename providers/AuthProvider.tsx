@@ -11,12 +11,14 @@ import Constants from 'expo-constants';
 type AuthContextType = {
   session: Session | null;
   user: User | null;
+  profile: any | null;
   initialized: boolean;
 };
 
 const AuthContext = createContext<AuthContextType>({
   session: null,
   user: null,
+  profile: null,
   initialized: false,
 });
 
@@ -63,6 +65,7 @@ async function registerForPushNotificationsAsync() {
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
+  const [profile, setProfile] = useState<any | null>(null);
   const [initialized, setInitialized] = useState(false);
   const segments = useSegments();
   const router = useRouter();
@@ -85,6 +88,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       subscription.unsubscribe();
     };
   }, []);
+
+  // Fetch Profile when Session changes
+  useEffect(() => {
+    if (session?.user) {
+      const fetchProfile = async () => {
+        const { data, error } = await supabase
+          .from('users')
+          .select('*')
+          .eq('id', session.user.id)
+          .maybeSingle();
+        
+        if (!error && data) {
+          setProfile(data);
+        }
+      };
+      fetchProfile();
+    } else {
+      setProfile(null);
+    }
+  }, [session?.user?.id]);
 
   // Sync Device Session to PostgreSQL
   useEffect(() => {
@@ -150,7 +173,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ session, user: session?.user ?? null, initialized }}>
+    <AuthContext.Provider value={{ session, user: session?.user ?? null, profile, initialized }}>
       {children}
     </AuthContext.Provider>
   );

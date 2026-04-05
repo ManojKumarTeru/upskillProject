@@ -4,20 +4,21 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Sparkles, MapPin, ChevronRight, RefreshCw } from 'lucide-react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/providers/AuthProvider';
 
 export default function WalletScreen() {
+  const { profile } = useAuth();
   const [loading, setLoading] = useState(true);
   const [loyaltyData, setLoyaltyData] = useState<any[]>([]);
   const [totalPoints, setTotalPoints] = useState(0);
-  const [userName, setUserName] = useState('Founder');
+
+  const userName = profile?.first_name || 'User';
 
   const fetchLoyaltyData = async () => {
     setLoading(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
-        setUserName(session.user.user_metadata?.first_name || 'User');
-        
         // Fetch our loyalty connections joined with the business info
         const { data, error } = await supabase
           .from('customer_loyalty')
