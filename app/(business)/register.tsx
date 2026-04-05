@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, Pressable, ScrollView, Platform, KeyboardAvoidingView, Alert } from 'react-native';
+import { View, Text, StyleSheet, TextInput, ScrollView, Platform, KeyboardAvoidingView, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { ArrowLeft, Store, MapPin, Tag } from 'lucide-react-native';
 import { supabase } from '@/lib/supabase';
+import { LinearGradient } from 'expo-linear-gradient';
+import HapticPressable from '@/components/HapticPressable';
 
 export default function RegisterBusinessScreen() {
   const router = useRouter();
@@ -20,18 +22,16 @@ export default function RegisterBusinessScreen() {
     setLoading(true);
 
     try {
-      // Real Supabase Insert
       const { data: { session } } = await supabase.auth.getSession();
       
       if (!session) {
-         Alert.alert("Authentication Required", "You must be signed in to register a business. Please log out and sign in again.");
+         Alert.alert("Authentication Required", "You must be signed in to register a business.");
          setLoading(false);
          return;
       }
 
       const shopOwnerId = session.user.id;
 
-      // 1. Create the Business
       const { data: business, error: businessError } = await supabase
         .from('businesses')
         .insert({
@@ -43,7 +43,6 @@ export default function RegisterBusinessScreen() {
 
       if (businessError) throw businessError;
 
-      // 2. Create the Location
       const { data: location, error: locationError } = await supabase
         .from('locations')
         .insert({
@@ -56,7 +55,6 @@ export default function RegisterBusinessScreen() {
 
       if (locationError) throw locationError;
 
-      // 3. Assign the user as the 'owner' in business_staff
       const { error: staffError } = await supabase
         .from('business_staff')
         .insert({
@@ -68,7 +66,7 @@ export default function RegisterBusinessScreen() {
 
       if (staffError) throw staffError;
 
-      Alert.alert("🎉 Shop Registered!", "Welcome to the Partner Network. Your business data is now live.", [
+      Alert.alert("🎉 Shop Registered!", "Welcome to the Partner Network.", [
         { text: "Go to Dashboard", onPress: () => router.replace('/(business)/dashboard') }
       ]);
       
@@ -85,11 +83,11 @@ export default function RegisterBusinessScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <View style={styles.header}>
-        <Pressable onPress={() => router.back()} style={styles.backButton}>
+        <HapticPressable onPress={() => router.back()} style={styles.backButton}>
           <ArrowLeft color="#0f172a" size={24} />
-        </Pressable>
+        </HapticPressable>
         <Text style={styles.headerTitle}>Partner Onboarding</Text>
-        <View style={{ width: 40 }} /> {/* Spacer */}
+        <View style={{ width: 40 }} />
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
@@ -103,7 +101,6 @@ export default function RegisterBusinessScreen() {
         </View>
 
         <View style={styles.form}>
-          
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Shop Name</Text>
             <View style={styles.inputWrapper}>
@@ -146,19 +143,23 @@ export default function RegisterBusinessScreen() {
               />
             </View>
           </View>
-
         </View>
-
       </ScrollView>
 
       <View style={styles.footer}>
-        <Pressable 
+        <HapticPressable 
           style={[styles.submitButton, loading && styles.submitButtonDisabled]} 
           onPress={handleRegistration}
           disabled={loading}
         >
-          <Text style={styles.submitButtonText}>{loading ? 'Registering...' : 'Register Business'}</Text>
-        </Pressable>
+          <LinearGradient
+            colors={loading ? ['#94a3b8', '#64748b'] : ['#4f46e5', '#6366f1']}
+            style={styles.submitGradient}
+            start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+          >
+            <Text style={styles.submitButtonText}>{loading ? 'Registering...' : 'Register Business'}</Text>
+          </LinearGradient>
+        </HapticPressable>
       </View>
     </KeyboardAvoidingView>
   );
@@ -260,19 +261,22 @@ const styles = StyleSheet.create({
     borderTopColor: '#f1f5f9',
   },
   submitButton: {
-    backgroundColor: '#6366f1',
     height: 56,
-    borderRadius: 28, // Pill shape
-    alignItems: 'center',
-    justifyContent: 'center',
+    borderRadius: 28,
+    overflow: 'hidden',
     shadowColor: '#6366f1',
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.3,
     shadowRadius: 16,
     elevation: 8,
   },
+  submitGradient: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 24,
+  },
   submitButtonDisabled: {
-    backgroundColor: '#94a3b8',
     shadowOpacity: 0,
     elevation: 0,
   },

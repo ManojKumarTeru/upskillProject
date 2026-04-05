@@ -1,8 +1,8 @@
+import { BlurView } from 'expo-blur';
 import { Tabs } from 'expo-router';
+import { Map as MapIcon, ScanLine, User, Wallet } from 'lucide-react-native';
 import React from 'react';
 import { Platform } from 'react-native';
-import { BlurView } from 'expo-blur';
-import { Wallet, ScanLine, User } from 'lucide-react-native';
 
 export default function TabLayout() {
   return (
@@ -32,7 +32,14 @@ export default function TabLayout() {
         name="index"
         options={{
           title: 'Wallet',
-          tabBarIcon: ({ color }) => <Wallet size={24} color={color} strokeWidth={2.5}  />,
+          tabBarIcon: ({ color }) => <Wallet size={24} color={color} strokeWidth={2.5} />,
+        }}
+      />
+      <Tabs.Screen
+        name="explore"
+        options={{
+          title: 'Explore',
+          tabBarIcon: ({ color }) => <MapIcon size={24} color={color} strokeWidth={2.5} />,
         }}
       />
       <Tabs.Screen
@@ -40,10 +47,10 @@ export default function TabLayout() {
         options={{
           title: 'Scan',
           tabBarIcon: ({ color, focused }) => (
-            <ScanLine 
-              size={32} 
-              color={focused ? '#6366f1' : '#475569'} 
-              strokeWidth={focused ? 3 : 2} 
+            <ScanLine
+              size={32}
+              color={focused ? '#6366f1' : '#475569'}
+              strokeWidth={focused ? 3 : 2}
               style={{ transform: [{ translateY: -4 }] }} // Popped up slightly like a central action button
             />
           ),
@@ -56,8 +63,6 @@ export default function TabLayout() {
           tabBarIcon: ({ color }) => <User size={24} color={color} strokeWidth={2.5} />,
         }}
       />
-      {/* Hide the default explore tab by rendering it null or just delete the file. We will ignore explore for now. */}
-      <Tabs.Screen name="explore" options={{ href: null }} />
     </Tabs>
   );
 }

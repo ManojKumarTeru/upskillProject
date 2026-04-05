@@ -7,19 +7,24 @@ import { View, ActivityIndicator } from 'react-native';
 import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
 import Constants from 'expo-constants';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 type AuthContextType = {
   session: Session | null;
   user: User | null;
   profile: any | null;
+  hasSeenOnboarding: boolean;
   initialized: boolean;
+  completeOnboarding: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextType>({
   session: null,
   user: null,
   profile: null,
+  hasSeenOnboarding: false,
   initialized: false,
+  completeOnboarding: async () => {},
 });
 
 export const useAuth = () => useContext(AuthContext);
@@ -66,16 +71,31 @@ async function registerForPushNotificationsAsync() {
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<any | null>(null);
+  const [hasSeenOnboarding, setHasSeenOnboarding] = useState(false);
   const [initialized, setInitialized] = useState(false);
   const segments = useSegments();
   const router = useRouter();
 
+  const completeOnboarding = async () => {
+    await AsyncStorage.setItem('hasSeenOnboarding', 'true');
+    setHasSeenOnboarding(true);
+    router.replace('/(auth)/login');
+  };
+
   useEffect(() => {
-    // Check active session on initial load
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    // Check active session + onboarding status on initial load
+    const init = async () => {
+      const [{ data: { session } }, seenOnboarding] = await Promise.all([
+        supabase.auth.getSession(),
+        AsyncStorage.getItem('hasSeenOnboarding')
+      ]);
+      
       setSession(session);
+      setHasSeenOnboarding(seenOnboarding === 'true');
       setInitialized(true);
-    });
+    };
+
+    init();
 
     // Listen to changes in auth state (login/logout)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -96,7 +116,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const { data, error } = await supabase
           .from('users')
           .select('*')
-          .eq('id', session.user.id)
+          .eq( 'id', session.user.id)
           .maybeSingle();
         
         if (!error && data) {
@@ -152,17 +172,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Routing and Access Control
   useEffect(() => {
     if (!initialized) return;
+
     const inAuthGroup = segments[0] === '(auth)';
-    
-    // Auth redirect disabled during local UI development for flexibility
-    /*
-    if (!session && !inAuthGroup) {
-      router.replace('/(auth)/login');
-    } else if (session && inAuthGroup) {
-      router.replace('/(tabs)');
+    const inOnboarding = segments[1] === 'onboarding';
+
+    if (!hasSeenOnboarding && !inOnboarding) {
+       // Force first-time users to onboarding
+       router.replace('/(auth)/onboarding');
+       return;
     }
-    */
-  }, [session, initialized, segments]);
+
+    if (hasSeenOnboarding) {
+       if (!session && !inAuthGroup) {
+         router.replace('/(auth)/login');
+       } else if (session && inAuthGroup) {
+         router.replace('/(tabs)');
+       }
+    }
+  }, [session, initialized, segments, hasSeenOnboarding]);
 
   if (!initialized) {
     return (
@@ -173,7 +200,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ session, user: session?.user ?? null, profile, initialized }}>
+    <AuthContext.Provider value={{ session, user: session?.user ?? null, profile, hasSeenOnboarding, initialized, completeOnboarding }}>
       {children}
     </AuthContext.Provider>
   );

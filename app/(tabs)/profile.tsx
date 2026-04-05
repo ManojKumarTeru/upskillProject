@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, Pressable, ScrollView, Image, Alert, Modal, Platform } from 'react-native';
-import { Settings, LogOut, Store, ChevronRight, HelpCircle, User as UserIcon, LayoutDashboard, QrCode, X } from 'lucide-react-native';
-import { useRouter } from 'expo-router';
+import { Settings, LogOut, Store, ChevronRight, HelpCircle, User as UserIcon, LayoutDashboard, QrCode, X, Award, Share2, Star } from 'lucide-react-native';
+import { useRouter, useFocusEffect } from 'expo-router';
+import * as Haptics from 'expo-haptics';
+import { Share } from 'react-native';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/providers/AuthProvider';
 import QRCode from 'react-native-qrcode-svg';
@@ -10,6 +12,42 @@ export default function ProfileScreen() {
   const router = useRouter();
   const { profile, user } = useAuth();
   const [showQRModal, setShowQRModal] = useState(false);
+  const [totalPoints, setTotalPoints] = useState(0);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      const fetchGlobalStats = async () => {
+        if (!user) return;
+        const { data } = await supabase
+          .from('customer_loyalty')
+          .select('current_points')
+          .eq('user_id', user.id);
+        
+        const sum = (data || []).reduce((acc, curr) => acc + (curr.current_points || 0), 0);
+        setTotalPoints(sum);
+      };
+      fetchGlobalStats();
+    }, [user])
+  );
+
+  const getTierInfo = (pts: number) => {
+    if (pts >= 2000) return { label: 'GOLD MEMBER', color: '#f59e0b', bg: '#fef3c7' };
+    if (pts >= 500) return { label: 'SILVER MEMBER', color: '#64748b', bg: '#f1f5f9' };
+    return { label: 'BRONZE MEMBER', color: '#92400e', bg: '#ffedd5' };
+  };
+
+  const tier = getTierInfo(totalPoints);
+
+  const handleShareStatus = async () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    try {
+      await Share.share({
+        message: `🏆 I've reached ${tier.label} on upskillProject! I've already earned ${totalPoints} cumulative loyalty points across my favorite shops. Join me and start earning! 🚀`,
+      });
+    } catch (err: any) {
+      console.error('Sharing failed:', err.message);
+    }
+  };
 
   const handleLogout = async () => {
     try {
@@ -35,6 +73,13 @@ export default function ProfileScreen() {
         />
         <View style={styles.userInfo}>
           <Text style={styles.name}>{name}</Text>
+          <View style={[styles.tierBadge, { backgroundColor: tier.bg }]}>
+            <Award color={tier.color} size={12} fill={tier.color} />
+            <Text style={[styles.tierText, { color: tier.color }]}>{tier.label}</Text>
+            <Pressable onPress={handleShareStatus} style={{ marginLeft: 8, padding: 2 }}>
+               <Share2 color={tier.color} size={14} />
+            </Pressable>
+          </View>
           <Text style={styles.email}>{email}</Text>
         </View>
         <Pressable 
@@ -100,6 +145,20 @@ export default function ProfileScreen() {
           </View>
         </>
       )}
+
+      <Text style={styles.sectionTitle}>Rewards & Growth</Text>
+      <View style={styles.menuGroup}>
+        <Pressable style={[styles.menuItem, { borderBottomWidth: 0 }]} onPress={() => router.push('/referral')}>
+          <View style={[styles.menuIconContainer, { backgroundColor: '#fef3c7' }]}>
+            <Star color="#f59e0b" size={20} fill="#f59e0b" />
+          </View>
+          <Text style={styles.menuText}>Invite Friends & Earn Points</Text>
+          <View style={styles.newBadge}>
+             <Text style={styles.newBadgeText}>NEW</Text>
+          </View>
+          <ChevronRight color="#cbd5e1" size={20} />
+        </Pressable>
+      </View>
 
       <Pressable style={styles.logoutButton} onPress={handleLogout}>
         <LogOut color="#ef4444" size={20} style={{ marginRight: 12 }} />
@@ -170,7 +229,23 @@ const styles = StyleSheet.create({
   email: {
     fontSize: 14,
     color: '#64748b',
-    marginTop: 4,
+    marginTop: 2,
+  },
+  tierBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+    marginTop: 6,
+    marginBottom: 4,
+  },
+  tierText: {
+    fontSize: 10,
+    fontWeight: '800',
+    marginLeft: 4,
+    letterSpacing: 0.5,
   },
   qrButton: {
     width: 50,
@@ -262,6 +337,18 @@ const styles = StyleSheet.create({
     color: '#ef4444',
     fontSize: 16,
     fontWeight: '700',
+  },
+  newBadge: {
+    backgroundColor: '#6366f1',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 6,
+    marginRight: 10,
+  },
+  newBadgeText: {
+    color: '#fff',
+    fontSize: 10,
+    fontWeight: '900',
   },
   // Modal Styles
   modalOverlay: {

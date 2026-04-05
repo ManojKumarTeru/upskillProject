@@ -1,112 +1,328 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { StyleSheet, View, Text, Pressable, ScrollView, ActivityIndicator, Dimensions, Image, Platform } from 'react-native';
+import * as Location from 'expo-location';
+import { Search, MapPin, Star, ChevronRight, LayoutGrid, Clock, Filter, Award } from 'lucide-react-native';
+import { BlurView } from 'expo-blur';
+import { supabase } from '@/lib/supabase';
+import { useRouter } from 'expo-router';
+import Animated, { FadeInDown, SlideInUp } from 'react-native-reanimated';
+import { LinearGradient } from 'expo-linear-gradient';
 
-import { Collapsible } from '@/components/ui/collapsible';
-import { ExternalLink } from '@/components/external-link';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Fonts } from '@/constants/theme';
+const { width } = Dimensions.get('window');
 
-export default function TabTwoScreen() {
+export default function ExploreScreen() {
+  const router = useRouter();
+  const [shops, setShops] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [userLoc, setUserLoc] = useState<Location.LocationObject | null>(null);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        let { status } = await Location.requestForegroundPermissionsAsync();
+        if (status === 'granted') {
+          let location = await Location.getCurrentPositionAsync({});
+          setUserLoc(location);
+          fetchNearbyShops();
+        } else {
+          fetchNearbyShops(); // Fetch anyway even if no GPS
+        }
+      } catch (e) {
+        fetchNearbyShops();
+      }
+    })();
+  }, []);
+
+  const fetchNearbyShops = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('locations')
+        .select(`
+          *,
+          business:businesses (*)
+        `);
+
+      if (error) throw error;
+      setShops(data || []);
+    } catch (err: any) {
+      console.error('Error fetching shops:', err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#6366f1" />
+        <Text style={styles.loadingText}>Finding best rewards nearby...</Text>
+      </View>
+    );
+  }
+
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#D0D0D0', dark: '#353636' }}
-      headerImage={
-        <IconSymbol
-          size={310}
-          color="#808080"
-          name="chevron.left.forwardslash.chevron.right"
-          style={styles.headerImage}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText
-          type="title"
-          style={{
-            fontFamily: Fonts.rounded,
-          }}>
-          Explore
-        </ThemedText>
-      </ThemedView>
-      <ThemedText>This app includes example code to help you get started.</ThemedText>
-      <Collapsible title="File-based routing">
-        <ThemedText>
-          This app has two screens:{' '}
-          <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> and{' '}
-          <ThemedText type="defaultSemiBold">app/(tabs)/explore.tsx</ThemedText>
-        </ThemedText>
-        <ThemedText>
-          The layout file in <ThemedText type="defaultSemiBold">app/(tabs)/_layout.tsx</ThemedText>{' '}
-          sets up the tab navigator.
-        </ThemedText>
-        <ExternalLink href="https://docs.expo.dev/router/introduction">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Android, iOS, and web support">
-        <ThemedText>
-          You can open this project on Android, iOS, and the web. To open the web version, press{' '}
-          <ThemedText type="defaultSemiBold">w</ThemedText> in the terminal running this project.
-        </ThemedText>
-      </Collapsible>
-      <Collapsible title="Images">
-        <ThemedText>
-          For static images, you can use the <ThemedText type="defaultSemiBold">@2x</ThemedText> and{' '}
-          <ThemedText type="defaultSemiBold">@3x</ThemedText> suffixes to provide files for
-          different screen densities
-        </ThemedText>
-        <Image
-          source={require('@/assets/images/react-logo.png')}
-          style={{ width: 100, height: 100, alignSelf: 'center' }}
-        />
-        <ExternalLink href="https://reactnative.dev/docs/images">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Light and dark mode components">
-        <ThemedText>
-          This template has light and dark mode support. The{' '}
-          <ThemedText type="defaultSemiBold">useColorScheme()</ThemedText> hook lets you inspect
-          what the user&apos;s current color scheme is, and so you can adjust UI colors accordingly.
-        </ThemedText>
-        <ExternalLink href="https://docs.expo.dev/develop/user-interface/color-themes/">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Animations">
-        <ThemedText>
-          This template includes an example of an animated component. The{' '}
-          <ThemedText type="defaultSemiBold">components/HelloWave.tsx</ThemedText> component uses
-          the powerful{' '}
-          <ThemedText type="defaultSemiBold" style={{ fontFamily: Fonts.mono }}>
-            react-native-reanimated
-          </ThemedText>{' '}
-          library to create a waving hand animation.
-        </ThemedText>
-        {Platform.select({
-          ios: (
-            <ThemedText>
-              The <ThemedText type="defaultSemiBold">components/ParallaxScrollView.tsx</ThemedText>{' '}
-              component provides a parallax effect for the header image.
-            </ThemedText>
-          ),
-        })}
-      </Collapsible>
-    </ParallaxScrollView>
+    <View style={styles.container}>
+      {/* Header with Search */}
+      <LinearGradient colors={['#0f172a', '#1e1b4b']} style={styles.header}>
+         <View style={styles.headerTop}>
+            <Text style={styles.headerTitle}>Discover Centers</Text>
+            <Pressable style={styles.filterBtn}>
+               <Filter color="#fff" size={20} />
+            </Pressable>
+         </View>
+         <View style={styles.searchBar}>
+            <Search color="#94a3b8" size={18} />
+            <Text style={styles.searchText}>Search shops, salons, cafes...</Text>
+         </View>
+      </LinearGradient>
+
+      <ScrollView 
+        showsVerticalScrollIndicator={false} 
+        contentContainerStyle={styles.scrollContent}
+      >
+        <Text style={styles.sectionTitle}>Shops Near You</Text>
+
+        {shops.length === 0 ? (
+          <View style={styles.emptyContainer}>
+            <Text style={styles.emptyText}>No shops found in this area yet.</Text>
+          </View>
+        ) : (
+          shops.map((shop, i) => (
+            <Animated.View 
+              key={shop.id} 
+              entering={FadeInDown.delay(i * 100).duration(600)}
+            >
+              <Pressable 
+                style={styles.shopCard}
+                onPress={() => router.push({
+                   pathname: '/shop/[id]',
+                   params: { id: shop.business_id, directExploration: 'true' }
+                })}
+              >
+                <Image 
+                  source={{ uri: shop.business?.logo_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(shop.business?.name || 'Shop')}&background=random` }}
+                  style={styles.shopImage}
+                />
+                
+                <View style={styles.cardOverlay}>
+                  <View style={styles.tierBadge}>
+                     <Award color="#f59e0b" size={10} fill="#f59e0b" />
+                     <Text style={styles.tierText}>PARTNER SHOP</Text>
+                  </View>
+                </View>
+
+                <View style={styles.shopInfo}>
+                  <View style={styles.infoRow}>
+                    <Text style={styles.shopName}>{shop.business?.name}</Text>
+                    <View style={styles.ratingBox}>
+                       <Star size={12} fill="#f59e0b" color="#f59e0b" />
+                       <Text style={styles.ratingValue}>4.8</Text>
+                    </View>
+                  </View>
+                  
+                  <Text style={styles.shopCategory}>{shop.business?.category} • {shop.name}</Text>
+                  
+                  <View style={styles.footerRow}>
+                    <View style={styles.distanceBadge}>
+                       <MapPin color="#64748b" size={12} />
+                       <Text style={styles.distanceText}>1.2 km away</Text>
+                    </View>
+                    <Pressable 
+                      style={styles.viewBtn}
+                      onPress={() => router.push({
+                        pathname: '/shop/[id]',
+                        params: { id: shop.business_id, directExploration: 'true' }
+                      })}
+                    >
+                      <Text style={styles.viewBtnText}>View Offers</Text>
+                      <ChevronRight color="#6366f1" size={16} />
+                    </Pressable>
+                  </View>
+                </View>
+              </Pressable>
+            </Animated.View>
+          ))
+        )}
+
+        {/* Spacer for bottom tabs */}
+        <View style={{ height: 100 }} />
+      </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  headerImage: {
-    color: '#808080',
-    bottom: -90,
-    left: -35,
-    position: 'absolute',
+  container: {
+    flex: 1,
+    backgroundColor: '#f8fafc',
   },
-  titleContainer: {
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#f8fafc',
+  },
+  loadingText: {
+    marginTop: 16,
+    color: '#64748b',
+    fontSize: 15,
+    fontWeight: '500',
+  },
+  header: {
+    paddingTop: Platform.OS === 'ios' ? 60 : 40,
+    paddingHorizontal: 20,
+    paddingBottom: 24,
+    borderBottomLeftRadius: 32,
+    borderBottomRightRadius: 32,
+  },
+  headerTop: {
     flexDirection: 'row',
-    gap: 8,
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
   },
+  headerTitle: {
+    fontSize: 24,
+    fontWeight: '800',
+    color: '#ffffff',
+  },
+  filterBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  searchBar: {
+    height: 52,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    borderRadius: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+  },
+  searchText: {
+    marginLeft: 12,
+    color: '#94a3b8',
+    fontSize: 15,
+  },
+  scrollContent: {
+    padding: 20,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#0f172a',
+    marginBottom: 20,
+  },
+  shopCard: {
+    backgroundColor: '#ffffff',
+    borderRadius: 24,
+    overflow: 'hidden',
+    marginBottom: 24,
+    shadowColor: '#64748b',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.1,
+    shadowRadius: 20,
+    elevation: 5,
+  },
+  shopImage: {
+    width: '100%',
+    height: 180,
+    backgroundColor: '#f1f5f9',
+  },
+  cardOverlay: {
+    position: 'absolute',
+    top: 16,
+    left: 16,
+  },
+  tierBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#ffffff',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 100,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 5,
+    elevation: 2,
+  },
+  tierText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#0f172a',
+    marginLeft: 6,
+    letterSpacing: 0.5,
+  },
+  shopInfo: {
+    padding: 16,
+  },
+  infoRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  shopName: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#0f172a',
+  },
+  ratingBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fffbeb',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  ratingValue: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#d97706',
+    marginLeft: 4,
+  },
+  shopCategory: {
+    fontSize: 13,
+    color: '#64748b',
+    marginBottom: 16,
+  },
+  footerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#f1f5f9',
+  },
+  distanceBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  distanceText: {
+    fontSize: 13,
+    color: '#64748b',
+    marginLeft: 6,
+    fontWeight: '500',
+  },
+  viewBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  viewBtnText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#6366f1',
+    marginRight: 4,
+  },
+  emptyContainer: {
+    padding: 40,
+    alignItems: 'center',
+  },
+  emptyText: {
+    color: '#94a3b8',
+    fontSize: 15,
+  }
 });
