@@ -1,8 +1,8 @@
 import HapticPressable from '@/components/HapticPressable';
 import TierModal from '@/components/TierModal';
-import AtmosphericBackground from '@/components/AtmosphericBackground';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/providers/AuthProvider';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { Award, Bell, ChevronRight, Clock, Compass, Gift, MapPin, Sparkles } from 'lucide-react-native';
 import React, { useEffect, useState } from 'react';
@@ -107,7 +107,6 @@ export default function WalletScreen() {
 
   return (
     <View style={styles.container}>
-      <AtmosphericBackground lightMode={true} />
       <TierModal isVisible={showTierModal} onClose={() => setShowTierModal(false)} userName={userName} tierLabel={globalTier.label} points={totalPoints} />
 
       <Animated.View style={[styles.liquidHeader, headerStyle]}>
@@ -135,19 +134,24 @@ export default function WalletScreen() {
       >
         <View style={{ height: 10 }} />
 
-        {/* BALANCE CARD - DAYLIGHT GLASS WIDGET */}
+        {/* BALANCE CARD - PREMIUM GRADIENT WIDGET */}
         <Animated.View entering={FadeInDown.delay(100).duration(800)}>
           <View style={styles.glassCard}>
-            <BlurView intensity={60} tint="light" style={StyleSheet.absoluteFill} />
+            <LinearGradient
+              colors={['#1e1b4b', '#312e81', '#0f172a']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={StyleSheet.absoluteFill}
+            />
             
             <View style={styles.cardHeader}>
                <View>
                  <Text style={styles.walletLabel}>TOTAL BALANCE</Text>
                  <Text style={styles.walletBalance}>{totalPoints.toLocaleString()}</Text>
                </View>
-               <View style={[styles.badge, { backgroundColor: globalTier.bg }]}>
+               <View style={[styles.badge, { backgroundColor: 'rgba(255,255,255,0.1)' }]}>
                  <Award color={globalTier.color} size={14} fill={globalTier.color} style={{ marginRight: 6 }} />
-                 <Text style={[styles.badgeText, { color: globalTier.color }]}>{globalTier.label}</Text>
+                 <Text style={[styles.badgeText, { color: '#fff' }]}>{globalTier.label}</Text>
                </View>
             </View>
 
@@ -157,7 +161,7 @@ export default function WalletScreen() {
                  <Text style={styles.progressValue}>{totalPoints} / {globalTier.next}</Text>
                </View>
                <View style={styles.progressBarBg}>
-                 <View style={[styles.progressBarFill, { width: `${progress}%`, backgroundColor: '#6366f1' }]} />
+                 <View style={[styles.progressBarFill, { width: `${progress}%` }]} />
                </View>
             </View>
 
@@ -265,23 +269,23 @@ const styles = StyleSheet.create({
   headerIcons: { flexDirection: 'row', gap: 12 },
   iconBtn: { width: 44, height: 44, borderRadius: 14, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#e2e8f0' },
   badgeDot: { position: 'absolute', top: 12, right: 12, width: 8, height: 8, borderRadius: 4, backgroundColor: '#ef4444', borderWidth: 2, borderColor: '#fff' },
-  glassCard: { width: '100%', borderRadius: 32, padding: 24, overflow: 'hidden', borderWidth: 1, borderColor: '#e2e8f0', backgroundColor: 'rgba(255,255,255,0.7)' },
+  glassCard: { width: '100%', borderRadius: 32, padding: 24, overflow: 'hidden', shadowColor: '#4f46e5', shadowOffset: { width: 0, height: 16 }, shadowOpacity: 0.35, shadowRadius: 24, elevation: 12 },
   cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 28 },
-  walletLabel: { fontSize: 11, color: '#64748b', fontWeight: '700', letterSpacing: 2 },
-  walletBalance: { fontSize: 42, fontWeight: '900', color: '#0f172a', marginTop: 4, letterSpacing: -1 },
+  walletLabel: { fontSize: 11, color: 'rgba(255,255,255,0.5)', fontWeight: '700', letterSpacing: 2 },
+  walletBalance: { fontSize: 42, fontWeight: '900', color: '#ffffff', marginTop: 4, letterSpacing: -1 },
   badge: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 100 },
   badgeText: { fontSize: 11, fontWeight: '800' },
   progressContainer: { marginBottom: 28 },
   progressHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
-  progressLabel: { fontSize: 12, color: '#64748b', fontWeight: '600' },
-  progressValue: { fontSize: 12, color: '#0f172a', fontWeight: '700' },
-  progressBarBg: { height: 6, backgroundColor: '#e2e8f0', borderRadius: 3 },
-  progressBarFill: { height: '100%', borderRadius: 3 },
-  cardFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  walletInfo: { fontSize: 20, fontWeight: '800', color: '#0f172a' },
-  walletSubInfo: { fontSize: 11, color: '#64748b', fontWeight: '600' },
-  idButton: { backgroundColor: '#6366f1', paddingHorizontal: 18, paddingVertical: 10, borderRadius: 14 },
-  idButtonText: { color: '#fff', fontSize: 13, fontWeight: '700' },
+  progressLabel: { fontSize: 12, color: 'rgba(255,255,255,0.5)', fontWeight: '600' },
+  progressValue: { fontSize: 12, color: '#ffffff', fontWeight: '700' },
+  progressBarBg: { height: 6, backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 3 },
+  progressBarFill: { height: '100%', borderRadius: 3, backgroundColor: '#818cf8' },
+  cardFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingTop: 20, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.08)' },
+  walletInfo: { fontSize: 20, fontWeight: '800', color: '#ffffff' },
+  walletSubInfo: { fontSize: 11, color: 'rgba(255,255,255,0.4)', fontWeight: '600', marginTop: 2 },
+  idButton: { backgroundColor: 'rgba(255,255,255,0.12)', paddingHorizontal: 18, paddingVertical: 10, borderRadius: 14, borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)' },
+  idButtonText: { color: '#ffffff', fontSize: 13, fontWeight: '700' },
   quickActions: { flexDirection: 'row', justifyContent: 'space-between', marginVertical: 36 },
   actionItem: { alignItems: 'center', gap: 10 },
   actionIcon: { width: 62, height: 62, borderRadius: 22, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#e2e8f0', backgroundColor: '#fff' },
